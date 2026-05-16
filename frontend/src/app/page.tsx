@@ -302,6 +302,9 @@ export default function Home() {
               <p className="mt-2 text-center text-[10px] text-slate-600">
                 AKShare / Yahoo Finance · Chroma RAG · For research only
               </p>
+              <p className="mt-1 text-center text-[10px] text-slate-500">
+                Copyright (c) 2026 Hang Zhao. All rights reserved.
+              </p>
             </div>
           </footer>
         </section>
