@@ -36,14 +36,14 @@ cp .env.example .env
 
 ```bash
 # 必填
-OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx
+OPENAI_API_KEY=your-openai-api-key
 
 # 可选：如果用第三方兼容 API（如 DeepSeek / 智谱 / 本地 Ollama）
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=gpt-4o-mini
 
 # 可选：新闻搜索（不填也能运行，只是无法搜新闻）
-TAVILY_API_KEY=tvly-xxxxxxxxxxxxxxxx
+TAVILY_API_KEY=your-tavily-api-key
 ```
 
 ---
