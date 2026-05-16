@@ -1,12 +1,23 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { fetchQuote, fetchIntraday, resolveAsset, QuoteData, IntradayData, ResolveData } from "@/lib/api";
+import {
+  fetchQuote,
+  fetchIntraday,
+  fetchHistory,
+  resolveAsset,
+  QuoteData,
+  IntradayData,
+  HistoryData,
+  ResolveData,
+} from "@/lib/api";
 
 interface AssetState {
   resolve: ResolveData | null;
   quote: QuoteData | null;
   intraday: IntradayData | null;
+  history7d: HistoryData | null;
+  history30d: HistoryData | null;
   loading: boolean;
   error: string | null;
 }
@@ -15,35 +26,59 @@ const QUICK_ASSETS = ["BABA", "TSLA", "AAPL", "NVDA", "茅台", "腾讯"];
 
 export default function AssetLookup() {
   const [query, setQuery] = useState("BABA");
+  const [chartRange, setChartRange] = useState<"intraday" | "7d" | "30d">("intraday");
   const [asset, setAsset] = useState<AssetState>({
-    resolve: null, quote: null, intraday: null, loading: false, error: null,
+    resolve: null,
+    quote: null,
+    intraday: null,
+    history7d: null,
+    history30d: null,
+    loading: false,
+    error: null,
   });
 
   const lookup = useCallback(async (q: string) => {
     if (!q.trim()) return;
-    setAsset({ resolve: null, quote: null, intraday: null, loading: true, error: null });
+    setChartRange("intraday");
+    setAsset({
+      resolve: null,
+      quote: null,
+      intraday: null,
+      history7d: null,
+      history30d: null,
+      loading: true,
+      error: null,
+    });
 
     try {
       const resolved = await resolveAsset(q.trim());
       setAsset(prev => ({ ...prev, resolve: resolved }));
 
-      const [quoteRes, intradayRes] = await Promise.allSettled([
+      const [quoteRes, intradayRes, history7dRes, history30dRes] = await Promise.allSettled([
         fetchQuote(resolved.symbol),
         fetchIntraday(resolved.symbol),
+        fetchHistory(resolved.symbol, "7d"),
+        fetchHistory(resolved.symbol, "30d"),
       ]);
       const quote = quoteRes.status === "fulfilled" ? quoteRes.value : null;
       const intraday = intradayRes.status === "fulfilled" ? intradayRes.value : null;
+      const history7d = history7dRes.status === "fulfilled" ? history7dRes.value : null;
+      const history30d = history30dRes.status === "fulfilled" ? history30dRes.value : null;
       const failures = [
         quoteRes.status === "rejected" ? "quote" : null,
         intradayRes.status === "rejected" ? "intraday" : null,
+        history7dRes.status === "rejected" ? "7d history" : null,
+        history30dRes.status === "rejected" ? "30d history" : null,
       ].filter(Boolean);
 
       setAsset(prev => ({
         ...prev,
         quote,
         intraday,
+        history7d,
+        history30d,
         loading: false,
-        error: !quote && !intraday
+        error: !quote && !intraday && !history7d && !history30d
           ? `行情查询失败: ${failures.join(", ") || "unknown"}`
           : null,
       }));
@@ -116,7 +151,7 @@ export default function AssetLookup() {
       )}
 
       {/* Result card */}
-      {!asset.loading && asset.resolve && (asset.quote || asset.intraday) && (
+      {!asset.loading && asset.resolve && (asset.quote || asset.intraday || asset.history7d || asset.history30d) && (
         <div className="panel animate-slide-up px-5 py-5">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
@@ -150,14 +185,56 @@ export default function AssetLookup() {
             </div>
           </div>
 
-          {/* Intraday chart */}
-          {asset.intraday && asset.intraday.data.length > 1 && (
+          {/* Chart range tabs */}
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex rounded-lg border border-surface-3 bg-surface-2 p-1">
+              {[
+                { key: "intraday", label: "日内" },
+                { key: "7d", label: "7日" },
+                { key: "30d", label: "30日" },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => setChartRange(item.key as "intraday" | "7d" | "30d")}
+                  className={`rounded-md px-3 py-1 text-[11px] font-medium transition-colors ${
+                    chartRange === item.key
+                      ? "bg-white text-brand-700 shadow-sm"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <TrendSummary
+              data={chartRange === "7d" ? asset.history7d : chartRange === "30d" ? asset.history30d : null}
+            />
+          </div>
+
+          {chartRange === "intraday" && asset.intraday && asset.intraday.data.length > 1 && (
             <IntradayChart data={asset.intraday.data} currency={asset.quote?.currency ?? asset.intraday.currency} />
           )}
-          {asset.intraday && asset.intraday.data.length <= 1 && (
+          {chartRange === "intraday" && asset.intraday && asset.intraday.data.length <= 1 && (
             <div className="rounded-xl border border-surface-3 px-4 py-6 text-center text-xs text-slate-500">
               暂无足够日内数据绘制走势图
             </div>
+          )}
+          {chartRange === "intraday" && !asset.intraday && (
+            <EmptyChartState label="暂无日内走势数据" />
+          )}
+
+          {chartRange === "7d" && asset.history7d && asset.history7d.data.length > 1 && (
+            <HistoryChart data={asset.history7d.data} currency={asset.history7d.currency} />
+          )}
+          {chartRange === "7d" && (!asset.history7d || asset.history7d.data.length <= 1) && (
+            <EmptyChartState label="暂无足够 7 日走势数据" />
+          )}
+
+          {chartRange === "30d" && asset.history30d && asset.history30d.data.length > 1 && (
+            <HistoryChart data={asset.history30d.data} currency={asset.history30d.currency} />
+          )}
+          {chartRange === "30d" && (!asset.history30d || asset.history30d.data.length <= 1) && (
+            <EmptyChartState label="暂无足够 30 日走势数据" />
           )}
 
           {/* Footer info */}
@@ -172,6 +249,36 @@ export default function AssetLookup() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function TrendSummary({ data }: { data: HistoryData | null }) {
+  if (!data || data.return_pct == null) {
+    return <span className="text-[11px] text-slate-400">选择区间查看趋势</span>;
+  }
+
+  const isPositive = data.return_pct > 0;
+  const isNegative = data.return_pct < 0;
+  return (
+    <div className="text-right text-[11px]">
+      <span
+        className={`font-mono font-medium ${
+          isPositive ? "text-brand-600" : isNegative ? "text-accent-red" : "text-slate-500"
+        }`}
+      >
+        {isPositive ? "+" : ""}
+        {data.return_pct.toFixed(2)}%
+      </span>
+      {data.trend && <span className="ml-2 text-slate-500">{data.trend}</span>}
+    </div>
+  );
+}
+
+function EmptyChartState({ label }: { label: string }) {
+  return (
+    <div className="rounded-xl border border-surface-3 px-4 py-8 text-center text-xs text-slate-500">
+      {label}
     </div>
   );
 }
@@ -220,6 +327,55 @@ function IntradayChart({ data, currency }: { data: Array<{ time: string; price: 
         <span>{data[0].time}</span>
         <span>最高 {currSign}{max.toFixed(2)} · 最低 {currSign}{min.toFixed(2)}</span>
         <span>{data[data.length - 1].time}</span>
+      </div>
+    </div>
+  );
+}
+
+function HistoryChart({ data, currency }: { data: Array<{ date: string; close: number }>; currency: string }) {
+  const prices = data.map(d => d.close);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = max - min || 1;
+  const w = 560;
+  const h = 120;
+  const padY = 10;
+
+  const points = prices
+    .map((p, i) => {
+      const x = (i / (prices.length - 1)) * w;
+      const y = padY + (h - 2 * padY) - ((p - min) / range) * (h - 2 * padY);
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  const isUp = prices[prices.length - 1] >= prices[0];
+  const color = isUp ? "#0891b2" : "#ef4444";
+  const currSign = currency === "CNY" ? "¥" : currency === "HKD" ? "HK$" : "$";
+
+  return (
+    <div className="relative">
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-28 w-full" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="historyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.16" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon points={`0,${h} ${points} ${w},${h}`} fill="url(#historyGrad)" />
+        <polyline
+          points={points}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <div className="mt-1 flex justify-between px-1 text-[10px] text-slate-500">
+        <span>{data[0].date}</span>
+        <span>最高 {currSign}{max.toFixed(2)} · 最低 {currSign}{min.toFixed(2)}</span>
+        <span>{data[data.length - 1].date}</span>
       </div>
     </div>
   );
