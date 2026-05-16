@@ -1,0 +1,32 @@
+# Data source configuration
+market_data:
+  primary: yfinance
+  fallback: alpha_vantage
+  cache_ttl_seconds: 60
+
+knowledge_base:
+  directory: ./knowledge_base
+  chroma_persist_dir: ./chroma_data
+  collection_name: financial_knowledge
+  chunk_max_tokens: 400
+  chunk_overlap_tokens: 50
+
+news_search:
+  provider: tavily  # or serpapi
+  max_results: 5
+  cache_ttl_seconds: 300
+
+embedding:
+  provider: openai  # or local
+  model: text-embedding-3-small
+  dimensions: 1536
+
+reranker:
+  provider: llm  # or cross_encoder
+  top_k: 3
+
+llm:
+  model: gpt-4o-mini
+  fallback_model: gpt-3.5-turbo
+  temperature: 0.2
+  max_tokens: 2048

@@ -1,0 +1,52 @@
+[
+  {
+    "question": "什么是市盈率？",
+    "ground_truth": "市盈率（P/E Ratio）是衡量公司股票估值的指标，计算公式为股票价格除以每股收益（EPS）。静态市盈率使用过去12个月的EPS，动态市盈率使用预测的未来12个月EPS。",
+    "intent": "knowledge"
+  },
+  {
+    "question": "收入和净利润有什么区别？",
+    "ground_truth": "收入是公司通过核心业务获得的总金额（Top Line），净利润是扣除所有成本、费用和税金后的最终利润（Bottom Line）。",
+    "intent": "knowledge"
+  },
+  {
+    "question": "阿里巴巴当前股价是多少？",
+    "ground_truth": "需要调用市场API获取实时数据。",
+    "intent": "market_quote"
+  },
+  {
+    "question": "BABA最近7天涨跌情况如何？",
+    "ground_truth": "需要调用市场API获取近7天历史数据并计算涨跌幅。",
+    "intent": "market_trend"
+  },
+  {
+    "question": "什么是自由现金流？",
+    "ground_truth": "自由现金流等于经营活动现金流减去资本支出，代表公司在维持和扩展业务后可自由支配的现金。",
+    "intent": "knowledge"
+  },
+  {
+    "question": "特斯拉近期走势如何？",
+    "ground_truth": "需要调用市场API获取特斯拉近期价格数据并分析走势。",
+    "intent": "market_trend"
+  },
+  {
+    "question": "什么是牛市和熊市？",
+    "ground_truth": "牛市是市场价格持续上涨20%以上的阶段，熊市是从高点下跌20%以上的阶段。",
+    "intent": "knowledge"
+  },
+  {
+    "question": "什么是毛利率？",
+    "ground_truth": "毛利率等于（营业收入减去营业成本）除以营业收入，反映公司核心产品或服务的盈利能力。",
+    "intent": "knowledge"
+  },
+  {
+    "question": "苹果公司股价多少？",
+    "ground_truth": "需要调用市场API获取AAPL实时数据。",
+    "intent": "market_quote"
+  },
+  {
+    "question": "什么是贝塔系数？",
+    "ground_truth": "贝塔系数衡量个股相对于市场整体的波动性。Beta=1表示与市场同步，大于1表示波动更大，小于1表示波动更小。",
+    "intent": "knowledge"
+  }
+]
